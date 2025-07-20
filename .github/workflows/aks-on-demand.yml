@@ -27,7 +27,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
       - name: Terraform Init (with remote backend)
-        working-directory: az-tf-aks
+        #working-directory: az-tf-aks
         run: |
           terraform init \
             -backend-config="resource_group_name=${{ secrets.TFSTATE_RESOURCE_GROUP }}" \
@@ -35,21 +35,21 @@ jobs:
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
             -backend-config="key=$TFSTATE_KEY"
       - name: Terraform Plan
-        working-directory: az-tf-aks
+       #working-directory: az-tf-aks
         run: terraform plan
       - name: Terraform Apply
         if: github.event.inputs.action == 'apply'
-        working-directory: az-tf-aks
+        #working-directory: az-tf-aks
         run: terraform apply -auto-approve
       - name: Print kubeconfig
         if: github.event.inputs.action == 'apply'
-        working-directory: az-tf-aks
+        #working-directory: az-tf-aks
         run: |
           echo "Kubeconfig output:"
           terraform output kube_config
       - name: Print public IP
         if: github.event.inputs.action == 'apply'
-        working-directory: az-tf-aks
+        #working-directory: az-tf-aks
         run: |
           echo "Public IP address:"
           terraform output aks_public_ip
@@ -60,6 +60,6 @@ jobs:
           az aks get-credentials --resource-group $(terraform -chdir=az-tf-aks output -raw resource_group_name) --name $(terraform -chdir=az-tf-aks output -raw aks_cluster_name) --overwrite-existing
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
-        working-directory: az-tf-aks
+        #working-directory: az-tf-aks
         run: terraform destroy -auto-approve
  

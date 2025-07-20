@@ -29,15 +29,15 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
       - name: Terraform Init
-        working-directory: az-tf-aks/backend-bootstrap
+        working-directory: backend-bootstrap
         run: terraform init
       - name: Terraform Apply
         if: github.event.inputs.action == 'apply'
-        working-directory: az-tf-aks/backend-bootstrap
+        working-directory: backend-bootstrap
         run: terraform apply -auto-approve
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy' && github.event.inputs.confirm_destroy == 'YES'
-        working-directory: az-tf-aks/backend-bootstrap
+        working-directory: backend-bootstrap
         run: |
           echo 'WARNING: You are about to destroy backend resources!'
           terraform destroy -auto-approve
