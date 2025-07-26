@@ -1,4 +1,4 @@
-name: Bootstrap Terraform Backend
+name: Bootstrap Terraform Backend - jitsetestingakstfstaterg01/tfstate
 
 on:
   workflow_dispatch:
