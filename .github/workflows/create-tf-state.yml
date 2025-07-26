@@ -1,10 +1,10 @@
-name: Create TF State
+name: Create TF State Infrastructure - ID: ${{ github.run_id }}
 
 on:
   workflow_dispatch:
     inputs:
       confirm_create:
-        description: 'Type YES to confirm create action'
+        description: 'Type YES to confirm create action - Creates Resource Group, Storage Account, and Container for Terraform state management'
         required: false
         default: ''
 

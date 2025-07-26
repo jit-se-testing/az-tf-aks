@@ -1,4 +1,4 @@
-name: Destroy TF State
+name: Destroy TF State Infrastructure - ID: ${{ github.run_id }}
 
 on:
   workflow_dispatch:
