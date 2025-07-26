@@ -153,4 +153,5 @@ jobs:
         run: terraform workspace select default || terraform workspace new default
       - name: Terraform Apply
         working-directory: backend-bootstrap
+        timeout-minutes: 15
         run: terraform apply -auto-approve 
