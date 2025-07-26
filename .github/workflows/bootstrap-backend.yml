@@ -44,7 +44,12 @@ jobs:
         run: terraform init -upgrade
       - name: Terraform Plan
         working-directory: backend-bootstrap
-        run: terraform plan
+        run: |
+          if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
+            terraform plan -destroy
+          else
+            terraform plan
+          fi
   apply:
     needs: plan
     runs-on: ubuntu-latest

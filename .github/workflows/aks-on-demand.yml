@@ -36,7 +36,12 @@ jobs:
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
             -backend-config="key=$TFSTATE_KEY"
       - name: Terraform Plan
-        run: terraform plan
+        run: |
+          if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
+            terraform plan -destroy
+          else
+            terraform plan
+          fi
   apply:
     needs: plan
     runs-on: ubuntu-latest
