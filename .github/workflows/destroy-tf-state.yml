@@ -1,18 +1,10 @@
-name: Bootstrap Terraform State - akstfstate01/tfstate
+name: Destroy TF State
 
 on:
   workflow_dispatch:
     inputs:
-      action:
-        description: 'Terraform action to perform (apply/destroy)'
-        required: true
-        default: 'apply'
-        type: choice
-        options:
-          - apply
-          - destroy
       confirm_destroy:
-        description: 'Type YES to confirm destroy (required for destroy action)'
+        description: 'Type YES to confirm destroy action'
         required: false
         default: ''
 
@@ -74,13 +66,8 @@ jobs:
         run: terraform show -json | jq '.values.root_module.resources[].address' 2>/dev/null || echo "No resources in state"
       - name: Terraform Plan
         working-directory: backend-bootstrap
-        run: |
-          if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
-            terraform plan -destroy
-          else
-            terraform plan
-          fi
-  apply:
+        run: terraform plan -destroy
+  destroy:
     needs: plan
     runs-on: ubuntu-latest
     environment:
@@ -120,18 +107,14 @@ jobs:
       - name: Select workspace
         working-directory: backend-bootstrap
         run: terraform workspace select default || terraform workspace new default
-      - name: Terraform Apply
-        if: github.event.inputs.action == 'apply'
-        working-directory: backend-bootstrap
-        run: terraform apply -auto-approve
       - name: Terraform Destroy
-        if: github.event.inputs.action == 'destroy' && github.event.inputs.confirm_destroy == 'YES'
+        if: github.event.inputs.confirm_destroy == 'YES'
         working-directory: backend-bootstrap
         run: |
           echo 'WARNING: You are about to destroy backend resources!'
           terraform destroy -auto-approve
       - name: Destroy Not Confirmed
-        if: github.event.inputs.action == 'destroy' && github.event.inputs.confirm_destroy != 'YES'
+        if: github.event.inputs.confirm_destroy != 'YES'
         run: |
           echo 'Destroy action was requested, but confirmation was not provided. Skipping destroy.'
           exit 1 

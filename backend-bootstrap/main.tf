@@ -5,6 +5,10 @@ terraform {
       version = "~> 3.0"
     }
   }
+  
+  backend "azurerm" {
+    # These will be provided via -backend-config flags
+  }
 }
 
 provider "azurerm" {

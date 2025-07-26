@@ -37,6 +37,12 @@ jobs:
             -backend-config="key=$TFSTATE_KEY"
       - name: Select workspace
         run: terraform workspace select default || terraform workspace new default
+      - name: Debug - Show current workspace
+        run: terraform workspace show
+      - name: Debug - List state resources
+        run: terraform state list
+      - name: Debug - Show backend config
+        run: terraform show -json | jq '.values.root_module.resources[].address' 2>/dev/null || echo "No resources in state"
       - name: Terraform Plan
         run: |
           if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
