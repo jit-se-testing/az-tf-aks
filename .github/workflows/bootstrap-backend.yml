@@ -30,6 +30,9 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
+      - name: Clean .terraform directory
+        working-directory: backend-bootstrap
+        run: rm -rf .terraform
       - name: Terraform Init
         working-directory: backend-bootstrap
         run: terraform init -upgrade
