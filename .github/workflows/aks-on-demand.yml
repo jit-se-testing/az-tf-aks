@@ -39,6 +39,10 @@ jobs:
       - name: Terraform Plan
        #working-directory: az-tf-aks
         run: terraform plan
+      - name: Wait for approval
+        uses: hmarr/await-approval@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Terraform Apply
         if: github.event.inputs.action == 'apply'
         #working-directory: az-tf-aks

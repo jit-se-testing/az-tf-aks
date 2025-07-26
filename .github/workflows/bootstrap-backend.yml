@@ -17,7 +17,7 @@ on:
         default: ''
 
 jobs:
-  bootstrap-backend:
+  bootstrap-TF-state:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -42,6 +42,13 @@ jobs:
       - name: Terraform Init
         working-directory: backend-bootstrap
         run: terraform init -upgrade
+      - name: Terraform Plan
+        working-directory: backend-bootstrap
+        run: terraform plan
+      - name: Wait for approval
+        uses: hmarr/await-approval@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Terraform Apply
         if: github.event.inputs.action == 'apply'
         working-directory: backend-bootstrap
