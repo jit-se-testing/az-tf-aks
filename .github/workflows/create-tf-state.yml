@@ -47,7 +47,9 @@ jobs:
         working-directory: backend-bootstrap
         timeout-minutes: 10
         run: |
-          echo "Starting terraform init with local state..."
+          echo "Starting terraform init with local state (first run)..."
+          # Remove backend block for first run
+          sed -i '/backend "azurerm" {/,/}/d' main.tf
           terraform init -upgrade -input=false
           echo "Terraform init completed successfully"
       - name: Terraform Init (Remote State)
@@ -109,7 +111,9 @@ jobs:
         working-directory: backend-bootstrap
         timeout-minutes: 10
         run: |
-          echo "Starting terraform init with local state..."
+          echo "Starting terraform init with local state (first run)..."
+          # Remove backend block for first run
+          sed -i '/backend "azurerm" {/,/}/d' main.tf
           terraform init -upgrade -input=false
           echo "Terraform init completed successfully"
       - name: Terraform Init (Remote State)
