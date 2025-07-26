@@ -3,10 +3,17 @@ name: Destroy TF State Infrastructure
 on:
   workflow_dispatch:
     inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'destroy'
+        type: choice
+        options:
+          - destroy
       confirm_destroy:
-        description: 'Type YES to confirm destroy action'
+        description: 'Type YES to confirm destroy'
         required: false
-        default: ''
+        type: string
 
 jobs:
   plan:
@@ -43,25 +50,6 @@ jobs:
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Check if remote state has resources
-        id: check-remote-state
-        if: steps.check-storage.outputs.exists == 'true'
-        run: |
-          echo "Checking if remote state contains resources..."
-          # Try to get state from remote backend
-          terraform init -upgrade \
-            -backend-config="resource_group_name=${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" \
-            -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" \
-            -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
-            -backend-config="key=backend-bootstrap.tfstate" >/dev/null 2>&1
-          
-          if terraform state list 2>/dev/null | grep -q .; then
-            echo "has_resources=true" >> $GITHUB_OUTPUT
-            echo "Remote state contains resources"
-          else
-            echo "has_resources=false" >> $GITHUB_OUTPUT
-            echo "Remote state is empty"
           fi
       - name: Debug - Show storage account check result
         run: |
@@ -112,13 +100,15 @@ jobs:
             terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account already in state or import failed"
           fi
           
-          # Get storage container ID
+          # Get storage container ID using Azure CLI
           CONTAINER_NAME="${{ secrets.BACKEND_CONTAINER || 'tfstate' }}"
-          CONTAINER_ID="$SA_NAME/$CONTAINER_NAME"
+          CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
           
-          if [ -n "$SA_ID" ]; then
+          if [ -n "$CONTAINER_ID" ]; then
             echo "Importing storage container: $CONTAINER_NAME"
             terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container already in state or import failed"
+          else
+            echo "Storage container not found or could not get ID"
           fi
           
           echo "Import completed"
@@ -201,6 +191,9 @@ jobs:
           sed -i '/backend "azurerm" {/,/}/d' main.tf
           terraform init -upgrade -input=false
           echo "Terraform init completed successfully"
+      - name: Select workspace
+        working-directory: backend-bootstrap
+        run: terraform workspace select default || terraform workspace new default
       - name: Import existing resources to state (if they exist)
         if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
@@ -225,19 +218,18 @@ jobs:
             terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account already in state or import failed"
           fi
           
-          # Get storage container ID
+          # Get storage container ID using Azure CLI
           CONTAINER_NAME="${{ secrets.BACKEND_CONTAINER || 'tfstate' }}"
-          CONTAINER_ID="$SA_NAME/$CONTAINER_NAME"
+          CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
           
-          if [ -n "$SA_ID" ]; then
+          if [ -n "$CONTAINER_ID" ]; then
             echo "Importing storage container: $CONTAINER_NAME"
             terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container already in state or import failed"
+          else
+            echo "Storage container not found or could not get ID"
           fi
           
           echo "Import completed"
-      - name: Select workspace
-        working-directory: backend-bootstrap
-        run: terraform workspace select default || terraform workspace new default
       - name: Terraform Destroy
         if: github.event.inputs.confirm_destroy == 'YES'
         working-directory: backend-bootstrap
