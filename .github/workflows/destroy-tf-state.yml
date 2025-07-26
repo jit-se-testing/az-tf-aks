@@ -45,16 +45,23 @@ jobs:
       - name: Terraform Init (Local State)
         if: steps.check-storage.outputs.exists == 'false'
         working-directory: backend-bootstrap
-        run: terraform init -upgrade
+        timeout-minutes: 10
+        run: |
+          echo "Starting terraform init with local state..."
+          terraform init -upgrade -input=false
+          echo "Terraform init completed successfully"
       - name: Terraform Init (Remote State)
         if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
+        timeout-minutes: 10
         run: |
+          echo "Starting terraform init with remote state..."
           terraform init -upgrade \
             -backend-config="resource_group_name=${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" \
             -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" \
             -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
             -backend-config="key=backend-bootstrap.tfstate"
+          echo "Terraform init with remote state completed successfully"
       - name: Select workspace
         working-directory: backend-bootstrap
         run: terraform workspace select default || terraform workspace new default
@@ -100,16 +107,23 @@ jobs:
       - name: Terraform Init (Local State)
         if: steps.check-storage.outputs.exists == 'false'
         working-directory: backend-bootstrap
-        run: terraform init -upgrade
+        timeout-minutes: 10
+        run: |
+          echo "Starting terraform init with local state..."
+          terraform init -upgrade -input=false
+          echo "Terraform init completed successfully"
       - name: Terraform Init (Remote State)
         if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
+        timeout-minutes: 10
         run: |
+          echo "Starting terraform init with remote state..."
           terraform init -upgrade \
             -backend-config="resource_group_name=${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" \
             -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" \
             -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
             -backend-config="key=backend-bootstrap.tfstate"
+          echo "Terraform init with remote state completed successfully"
       - name: Select workspace
         working-directory: backend-bootstrap
         run: terraform workspace select default || terraform workspace new default
