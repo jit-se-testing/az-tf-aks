@@ -1,4 +1,4 @@
-name: Create TF State Infrastructure - ID: ${{ github.run_id }}
+name: Create TF State Infrastructure - Run #${{ github.run_number }}
 
 on:
   workflow_dispatch:
