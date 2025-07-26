@@ -33,6 +33,12 @@ jobs:
       - name: Clean .terraform directory
         working-directory: backend-bootstrap
         run: rm -rf .terraform
+      - name: Print working directory
+        run: pwd
+        working-directory: backend-bootstrap
+      - name: List files
+        run: ls -l
+        working-directory: backend-bootstrap
       - name: Terraform Init
         working-directory: backend-bootstrap
         run: terraform init -upgrade
