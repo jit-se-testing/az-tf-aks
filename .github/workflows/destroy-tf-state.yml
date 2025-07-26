@@ -34,11 +34,14 @@ jobs:
       - name: Check if storage account exists
         id: check-storage
         run: |
-          if az storage account show --name "${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstaterg01' }}" --resource-group "${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" >/dev/null 2>&1; then
+          if az storage account show --name "${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" --resource-group "${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
+      - name: Debug - Show storage account check result
+        run: |
+          echo "Storage account exists: ${{ steps.check-storage.outputs.exists }}"
       - name: Terraform Init (Local State)
         if: steps.check-storage.outputs.exists == 'false'
         working-directory: backend-bootstrap
@@ -49,7 +52,7 @@ jobs:
         run: |
           terraform init -upgrade \
             -backend-config="resource_group_name=${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" \
-            -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstaterg01' }}" \
+            -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" \
             -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
             -backend-config="key=backend-bootstrap.tfstate"
       - name: Select workspace
@@ -86,11 +89,14 @@ jobs:
       - name: Check if storage account exists
         id: check-storage
         run: |
-          if az storage account show --name "${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstaterg01' }}" --resource-group "${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" >/dev/null 2>&1; then
+          if az storage account show --name "${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" --resource-group "${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
+      - name: Debug - Show storage account check result
+        run: |
+          echo "Storage account exists: ${{ steps.check-storage.outputs.exists }}"
       - name: Terraform Init (Local State)
         if: steps.check-storage.outputs.exists == 'false'
         working-directory: backend-bootstrap
@@ -101,7 +107,7 @@ jobs:
         run: |
           terraform init -upgrade \
             -backend-config="resource_group_name=${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" \
-            -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstaterg01' }}" \
+            -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" \
             -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
             -backend-config="key=backend-bootstrap.tfstate"
       - name: Select workspace
