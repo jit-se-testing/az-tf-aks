@@ -26,10 +26,12 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
       - name: Terraform Init (with remote backend)
         #working-directory: az-tf-aks
         run: |
-          terraform init \
+          terraform init -upgrade \
             -backend-config="resource_group_name=${{ secrets.TFSTATE_RESOURCE_GROUP }}" \
             -backend-config="storage_account_name=${{ secrets.TFSTATE_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
