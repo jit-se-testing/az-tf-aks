@@ -66,19 +66,8 @@ jobs:
       - name: Debug - Show storage account check result
         run: |
           echo "Storage account exists: ${{ steps.check-storage.outputs.exists }}"
-          echo "Remote state has resources: ${{ steps.check-remote-state.outputs.has_resources }}"
-      - name: Terraform Init (Local State)
-        if: steps.check-storage.outputs.exists == 'false' || (steps.check-storage.outputs.exists == 'true' && steps.check-remote-state.outputs.has_resources == 'false')
-        working-directory: backend-bootstrap
-        timeout-minutes: 10
-        run: |
-          echo "Starting terraform init with local state (first run or empty remote state)..."
-          # Remove backend block for first run
-          sed -i '/backend "azurerm" {/,/}/d' main.tf
-          terraform init -upgrade -input=false
-          echo "Terraform init completed successfully"
       - name: Terraform Init (Remote State)
-        if: steps.check-storage.outputs.exists == 'true' && steps.check-remote-state.outputs.has_resources == 'true'
+        if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
         timeout-minutes: 10
         run: |
@@ -89,6 +78,50 @@ jobs:
             -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
             -backend-config="key=backend-bootstrap.tfstate"
           echo "Terraform init with remote state completed successfully"
+      - name: Terraform Init (Local State)
+        if: steps.check-storage.outputs.exists == 'false'
+        working-directory: backend-bootstrap
+        timeout-minutes: 10
+        run: |
+          echo "Starting terraform init with local state (storage account does not exist)..."
+          # Remove backend block for local state
+          sed -i '/backend "azurerm" {/,/}/d' main.tf
+          terraform init -upgrade -input=false
+          echo "Terraform init completed successfully"
+      - name: Import existing resources to state (if they exist)
+        if: steps.check-storage.outputs.exists == 'true'
+        working-directory: backend-bootstrap
+        run: |
+          echo "Importing existing Azure resources to Terraform state..."
+          
+          # Get resource group ID
+          RG_NAME="${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}"
+          RG_ID=$(az group show --name "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
+          
+          if [ -n "$RG_ID" ]; then
+            echo "Importing resource group: $RG_NAME"
+            terraform import azurerm_resource_group.tfstate "$RG_ID" || echo "Resource group already in state or import failed"
+          fi
+          
+          # Get storage account ID
+          SA_NAME="${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}"
+          SA_ID=$(az storage account show --name "$SA_NAME" --resource-group "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
+          
+          if [ -n "$SA_ID" ]; then
+            echo "Importing storage account: $SA_NAME"
+            terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account already in state or import failed"
+          fi
+          
+          # Get storage container ID
+          CONTAINER_NAME="${{ secrets.BACKEND_CONTAINER || 'tfstate' }}"
+          CONTAINER_ID="$SA_NAME/$CONTAINER_NAME"
+          
+          if [ -n "$SA_ID" ]; then
+            echo "Importing storage container: $CONTAINER_NAME"
+            terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container already in state or import failed"
+          fi
+          
+          echo "Import completed"
       - name: Select workspace
         working-directory: backend-bootstrap
         run: terraform workspace select default || terraform workspace new default
@@ -143,41 +176,11 @@ jobs:
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
-      - name: Check if remote state has resources
-        id: check-remote-state
-        if: steps.check-storage.outputs.exists == 'true'
-        run: |
-          echo "Checking if remote state contains resources..."
-          # Try to get state from remote backend
-          terraform init -upgrade \
-            -backend-config="resource_group_name=${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}" \
-            -backend-config="storage_account_name=${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}" \
-            -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
-            -backend-config="key=backend-bootstrap.tfstate" >/dev/null 2>&1
-          
-          if terraform state list 2>/dev/null | grep -q .; then
-            echo "has_resources=true" >> $GITHUB_OUTPUT
-            echo "Remote state contains resources"
-          else
-            echo "has_resources=false" >> $GITHUB_OUTPUT
-            echo "Remote state is empty"
-          fi
       - name: Debug - Show storage account check result
         run: |
           echo "Storage account exists: ${{ steps.check-storage.outputs.exists }}"
-          echo "Remote state has resources: ${{ steps.check-remote-state.outputs.has_resources }}"
-      - name: Terraform Init (Local State)
-        if: steps.check-storage.outputs.exists == 'false' || (steps.check-storage.outputs.exists == 'true' && steps.check-remote-state.outputs.has_resources == 'false')
-        working-directory: backend-bootstrap
-        timeout-minutes: 10
-        run: |
-          echo "Starting terraform init with local state (first run or empty remote state)..."
-          # Remove backend block for first run
-          sed -i '/backend "azurerm" {/,/}/d' main.tf
-          terraform init -upgrade -input=false
-          echo "Terraform init completed successfully"
       - name: Terraform Init (Remote State)
-        if: steps.check-storage.outputs.exists == 'true' && steps.check-remote-state.outputs.has_resources == 'true'
+        if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
         timeout-minutes: 10
         run: |
@@ -188,6 +191,16 @@ jobs:
             -backend-config="container_name=${{ secrets.BACKEND_CONTAINER || 'tfstate' }}" \
             -backend-config="key=backend-bootstrap.tfstate"
           echo "Terraform init with remote state completed successfully"
+      - name: Terraform Init (Local State)
+        if: steps.check-storage.outputs.exists == 'false'
+        working-directory: backend-bootstrap
+        timeout-minutes: 10
+        run: |
+          echo "Starting terraform init with local state (storage account does not exist)..."
+          # Remove backend block for local state
+          sed -i '/backend "azurerm" {/,/}/d' main.tf
+          terraform init -upgrade -input=false
+          echo "Terraform init completed successfully"
       - name: Import existing resources to state (if they exist)
         if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
@@ -225,40 +238,6 @@ jobs:
       - name: Select workspace
         working-directory: backend-bootstrap
         run: terraform workspace select default || terraform workspace new default
-      - name: Import existing resources to state (if they exist)
-        if: steps.check-storage.outputs.exists == 'true'
-        working-directory: backend-bootstrap
-        run: |
-          echo "Importing existing Azure resources to Terraform state..."
-          
-          # Get resource group ID
-          RG_NAME="${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}"
-          RG_ID=$(az group show --name "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
-          
-          if [ -n "$RG_ID" ]; then
-            echo "Importing resource group: $RG_NAME"
-            terraform import azurerm_resource_group.tfstate "$RG_ID" || echo "Resource group already in state or import failed"
-          fi
-          
-          # Get storage account ID
-          SA_NAME="${{ secrets.BACKEND_STORAGE_ACCOUNT || 'akstfstate01' }}"
-          SA_ID=$(az storage account show --name "$SA_NAME" --resource-group "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
-          
-          if [ -n "$SA_ID" ]; then
-            echo "Importing storage account: $SA_NAME"
-            terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account already in state or import failed"
-          fi
-          
-          # Get storage container ID
-          CONTAINER_NAME="${{ secrets.BACKEND_CONTAINER || 'tfstate' }}"
-          CONTAINER_ID="$SA_NAME/$CONTAINER_NAME"
-          
-          if [ -n "$SA_ID" ]; then
-            echo "Importing storage container: $CONTAINER_NAME"
-            terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container already in state or import failed"
-          fi
-          
-          echo "Import completed"
       - name: Terraform Destroy
         if: github.event.inputs.confirm_destroy == 'YES'
         working-directory: backend-bootstrap
