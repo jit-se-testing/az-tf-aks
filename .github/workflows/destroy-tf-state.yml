@@ -72,10 +72,20 @@ jobs:
         run: terraform workspace show
       - name: Debug - List state resources
         working-directory: backend-bootstrap
-        run: terraform state list
+        run: |
+          if terraform state list 2>/dev/null; then
+            echo "State file exists and contains resources"
+          else
+            echo "No state file found or state file is empty (this is normal for first run)"
+          fi
       - name: Debug - Show backend config
         working-directory: backend-bootstrap
-        run: terraform show -json | jq '.values.root_module.resources[].address' 2>/dev/null || echo "No resources in state"
+        run: |
+          if terraform show -json 2>/dev/null | jq '.values.root_module.resources[].address' 2>/dev/null; then
+            echo "Resources found in state"
+          else
+            echo "No resources in state (this is normal for first run)"
+          fi
       - name: Terraform Plan
         working-directory: backend-bootstrap
         run: terraform plan -destroy
