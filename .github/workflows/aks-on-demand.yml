@@ -35,6 +35,8 @@ jobs:
             -backend-config="storage_account_name=${{ secrets.TFSTATE_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
             -backend-config="key=$TFSTATE_KEY"
+      - name: Select workspace
+        run: terraform workspace select default || terraform workspace new default
       - name: Terraform Plan
         run: |
           if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
@@ -67,6 +69,8 @@ jobs:
             -backend-config="storage_account_name=${{ secrets.TFSTATE_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ secrets.TFSTATE_CONTAINER }}" \
             -backend-config="key=$TFSTATE_KEY"
+      - name: Select workspace
+        run: terraform workspace select default || terraform workspace new default
       - name: Terraform Apply
         if: github.event.inputs.action == 'apply'
         run: terraform apply -auto-approve
