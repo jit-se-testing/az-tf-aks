@@ -1,4 +1,4 @@
-name: Bootstrap Terraform Backend - jitsetestingakstfstaterg01/tfstate
+name: Bootstrap Terraform State - akstfstate01/tfstate
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ on:
         default: ''
 
 jobs:
-  bootstrap-TF-state:
+  plan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -45,10 +45,25 @@ jobs:
       - name: Terraform Plan
         working-directory: backend-bootstrap
         run: terraform plan
-      - name: Wait for approval
-        uses: hmarr/await-approval@v1
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    environment:
+      name: manual-approval
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Azure Login
+        uses: azure/login@v1
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+      - name: Terraform Init
+        working-directory: backend-bootstrap
+        run: terraform init -upgrade
       - name: Terraform Apply
         if: github.event.inputs.action == 'apply'
         working-directory: backend-bootstrap
