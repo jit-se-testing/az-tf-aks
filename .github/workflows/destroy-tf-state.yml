@@ -117,7 +117,23 @@ jobs:
           # First, check if container exists
           if az storage container exists --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --output tsv 2>/dev/null | grep -q "True"; then
             echo "Storage container exists, getting ID..."
+            
+            # Try different approaches to get the container ID
+            echo "Attempting to get container ID using different methods..."
+            
+            # Method 1: Direct show command
             CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
+            echo "Method 1 result: $CONTAINER_ID"
+            
+            # Method 2: Construct the ID manually if Method 1 fails
+            if [ -z "$CONTAINER_ID" ]; then
+              echo "Method 1 failed, trying Method 2 (manual construction)..."
+              SUBSCRIPTION_ID=$(az account show --query id -o tsv 2>/dev/null || echo "")
+              if [ -n "$SUBSCRIPTION_ID" ] && [ -n "$SA_NAME" ]; then
+                CONTAINER_ID="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME/providers/Microsoft.Storage/storageAccounts/$SA_NAME/blobServices/default/containers/$CONTAINER_NAME"
+                echo "Method 2 constructed ID: $CONTAINER_ID"
+              fi
+            fi
             
             if [ -n "$CONTAINER_ID" ]; then
               echo "Checking if storage container is already in state..."
@@ -128,7 +144,7 @@ jobs:
                 terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container import failed"
               fi
             else
-              echo "Could not get storage container ID"
+              echo "Could not get storage container ID using any method"
             fi
           else
             echo "Storage container '$CONTAINER_NAME' does not exist in storage account '$SA_NAME'"
@@ -258,7 +274,23 @@ jobs:
           # First, check if container exists
           if az storage container exists --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --output tsv 2>/dev/null | grep -q "True"; then
             echo "Storage container exists, getting ID..."
+            
+            # Try different approaches to get the container ID
+            echo "Attempting to get container ID using different methods..."
+            
+            # Method 1: Direct show command
             CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
+            echo "Method 1 result: $CONTAINER_ID"
+            
+            # Method 2: Construct the ID manually if Method 1 fails
+            if [ -z "$CONTAINER_ID" ]; then
+              echo "Method 1 failed, trying Method 2 (manual construction)..."
+              SUBSCRIPTION_ID=$(az account show --query id -o tsv 2>/dev/null || echo "")
+              if [ -n "$SUBSCRIPTION_ID" ] && [ -n "$SA_NAME" ]; then
+                CONTAINER_ID="/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG_NAME/providers/Microsoft.Storage/storageAccounts/$SA_NAME/blobServices/default/containers/$CONTAINER_NAME"
+                echo "Method 2 constructed ID: $CONTAINER_ID"
+              fi
+            fi
             
             if [ -n "$CONTAINER_ID" ]; then
               echo "Checking if storage container is already in state..."
@@ -269,7 +301,7 @@ jobs:
                 terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container import failed"
               fi
             else
-              echo "Could not get storage container ID"
+              echo "Could not get storage container ID using any method"
             fi
           else
             echo "Storage container '$CONTAINER_NAME' does not exist in storage account '$SA_NAME'"
