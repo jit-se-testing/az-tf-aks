@@ -80,15 +80,20 @@ jobs:
         if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
         run: |
-          echo "Importing existing Azure resources to Terraform state..."
+          echo "Checking and importing existing Azure resources to Terraform state..."
           
           # Get resource group ID
           RG_NAME="${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}"
           RG_ID=$(az group show --name "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
           
           if [ -n "$RG_ID" ]; then
-            echo "Importing resource group: $RG_NAME"
-            terraform import azurerm_resource_group.tfstate "$RG_ID" || echo "Resource group already in state or import failed"
+            echo "Checking if resource group is already in state..."
+            if terraform state list | grep -q "azurerm_resource_group.tfstate"; then
+              echo "Resource group already in state, skipping import"
+            else
+              echo "Importing resource group: $RG_NAME"
+              terraform import azurerm_resource_group.tfstate "$RG_ID" || echo "Resource group import failed"
+            fi
           fi
           
           # Get storage account ID
@@ -96,22 +101,40 @@ jobs:
           SA_ID=$(az storage account show --name "$SA_NAME" --resource-group "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
           
           if [ -n "$SA_ID" ]; then
-            echo "Importing storage account: $SA_NAME"
-            terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account already in state or import failed"
+            echo "Checking if storage account is already in state..."
+            if terraform state list | grep -q "azurerm_storage_account.tfstate"; then
+              echo "Storage account already in state, skipping import"
+            else
+              echo "Importing storage account: $SA_NAME"
+              terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account import failed"
+            fi
           fi
           
           # Get storage container ID using Azure CLI
           CONTAINER_NAME="${{ secrets.BACKEND_CONTAINER || 'tfstate' }}"
-          CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
+          echo "Checking for storage container: $CONTAINER_NAME in account: $SA_NAME"
           
-          if [ -n "$CONTAINER_ID" ]; then
-            echo "Importing storage container: $CONTAINER_NAME"
-            terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container already in state or import failed"
+          # First, check if container exists
+          if az storage container exists --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --output tsv 2>/dev/null | grep -q "True"; then
+            echo "Storage container exists, getting ID..."
+            CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
+            
+            if [ -n "$CONTAINER_ID" ]; then
+              echo "Checking if storage container is already in state..."
+              if terraform state list | grep -q "azurerm_storage_container.tfstate"; then
+                echo "Storage container already in state, skipping import"
+              else
+                echo "Importing storage container: $CONTAINER_NAME"
+                terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container import failed"
+              fi
+            else
+              echo "Could not get storage container ID"
+            fi
           else
-            echo "Storage container not found or could not get ID"
+            echo "Storage container '$CONTAINER_NAME' does not exist in storage account '$SA_NAME'"
           fi
           
-          echo "Import completed"
+          echo "Import check completed"
       - name: Select workspace
         working-directory: backend-bootstrap
         run: terraform workspace select default || terraform workspace new default
@@ -198,15 +221,20 @@ jobs:
         if: steps.check-storage.outputs.exists == 'true'
         working-directory: backend-bootstrap
         run: |
-          echo "Importing existing Azure resources to Terraform state..."
+          echo "Checking and importing existing Azure resources to Terraform state..."
           
           # Get resource group ID
           RG_NAME="${{ secrets.BACKEND_RESOURCE_GROUP || 'jit-se-testing-aks-tfstate-rg01' }}"
           RG_ID=$(az group show --name "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
           
           if [ -n "$RG_ID" ]; then
-            echo "Importing resource group: $RG_NAME"
-            terraform import azurerm_resource_group.tfstate "$RG_ID" || echo "Resource group already in state or import failed"
+            echo "Checking if resource group is already in state..."
+            if terraform state list | grep -q "azurerm_resource_group.tfstate"; then
+              echo "Resource group already in state, skipping import"
+            else
+              echo "Importing resource group: $RG_NAME"
+              terraform import azurerm_resource_group.tfstate "$RG_ID" || echo "Resource group import failed"
+            fi
           fi
           
           # Get storage account ID
@@ -214,22 +242,40 @@ jobs:
           SA_ID=$(az storage account show --name "$SA_NAME" --resource-group "$RG_NAME" --query id -o tsv 2>/dev/null || echo "")
           
           if [ -n "$SA_ID" ]; then
-            echo "Importing storage account: $SA_NAME"
-            terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account already in state or import failed"
+            echo "Checking if storage account is already in state..."
+            if terraform state list | grep -q "azurerm_storage_account.tfstate"; then
+              echo "Storage account already in state, skipping import"
+            else
+              echo "Importing storage account: $SA_NAME"
+              terraform import azurerm_storage_account.tfstate "$SA_ID" || echo "Storage account import failed"
+            fi
           fi
           
           # Get storage container ID using Azure CLI
           CONTAINER_NAME="${{ secrets.BACKEND_CONTAINER || 'tfstate' }}"
-          CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
+          echo "Checking for storage container: $CONTAINER_NAME in account: $SA_NAME"
           
-          if [ -n "$CONTAINER_ID" ]; then
-            echo "Importing storage container: $CONTAINER_NAME"
-            terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container already in state or import failed"
+          # First, check if container exists
+          if az storage container exists --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --output tsv 2>/dev/null | grep -q "True"; then
+            echo "Storage container exists, getting ID..."
+            CONTAINER_ID=$(az storage container show --name "$CONTAINER_NAME" --account-name "$SA_NAME" --auth-mode login --query id -o tsv 2>/dev/null || echo "")
+            
+            if [ -n "$CONTAINER_ID" ]; then
+              echo "Checking if storage container is already in state..."
+              if terraform state list | grep -q "azurerm_storage_container.tfstate"; then
+                echo "Storage container already in state, skipping import"
+              else
+                echo "Importing storage container: $CONTAINER_NAME"
+                terraform import azurerm_storage_container.tfstate "$CONTAINER_ID" || echo "Storage container import failed"
+              fi
+            else
+              echo "Could not get storage container ID"
+            fi
           else
-            echo "Storage container not found or could not get ID"
+            echo "Storage container '$CONTAINER_NAME' does not exist in storage account '$SA_NAME'"
           fi
           
-          echo "Import completed"
+          echo "Import check completed"
       - name: Terraform Destroy
         if: github.event.inputs.confirm_destroy == 'YES'
         working-directory: backend-bootstrap
